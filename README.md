@@ -90,12 +90,12 @@ Tracks performance across multiple dimensions, not just "right" or "wrong" answe
 - [x] Set up basic routing structure
 - [x] Create initial landing page
 
-#### Hour 2: Database & AI Foundation
-- [ ] Set up MongoDB connection and schemas
-- [ ] Create User and Interview Session models
-- [ ] Initialize LangChain.js integration
-- [ ] Set up environment variables structure
-- [ ] Create basic API routes for interviews
+#### Hour 2: Database & AI Foundation ✅
+- [x] Set up MongoDB connection and schemas
+- [x] Create User and Interview Session models
+- [x] Initialize LangChain.js integration
+- [x] Set up environment variables structure
+- [x] Create basic API routes for interviews
 
 ---
 

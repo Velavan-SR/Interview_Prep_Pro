@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSessionById, addMessageToSession } from '@/lib/db/operations';
+import { createInterviewChain } from '@/lib/ai/chain';
+import { HumanMessage, AIMessage, SystemMessage } from '@langchain/core/messages';
 
 // POST /api/interview - Handle interview messages
 export async function POST(request: NextRequest) {
@@ -13,19 +16,65 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Day 2 Hour 1 - Integrate with LangChain
-    // - Connect to MongoDB to fetch/store conversation history
-    // - Use LangChain to generate contextual AI response
-    // - Store the new message exchange in the session
-    
-    // Mock response for now
-    const mockResponse = {
-      response: "That's an interesting point. Can you elaborate on how you would handle error cases in that scenario?",
-      sessionId: sessionId || `session-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-    };
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: 'Session ID is required' },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json(mockResponse);
+    // Get session from database
+    const session = await getSessionById(sessionId);
+    
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Session not found' },
+        { status: 404 }
+      );
+    }
+
+    // Add user message to session
+    await addMessageToSession(sessionId, {
+      role: 'user',
+      content: message,
+      timestamp: new Date(),
+    });
+
+    // Create LangChain model
+    const { model, systemPrompt } = createInterviewChain(
+      role || session.role,
+      level || session.level
+    );
+
+    // Build message history for context
+    const messages = [
+      new SystemMessage(systemPrompt),
+      ...session.messages.map(msg => {
+        if (msg.role === 'user') {
+          return new HumanMessage(msg.content);
+        } else {
+          return new AIMessage(msg.content);
+        }
+      }),
+      new HumanMessage(message),
+    ];
+
+    // Generate AI response
+    const aiResponse = await model.invoke(messages);
+    const aiMessage = aiResponse.content as string;
+
+    // Add AI response to session
+    await addMessageToSession(sessionId, {
+      role: 'assistant',
+      content: aiMessage,
+      timestamp: new Date(),
+    });
+
+    return NextResponse.json({
+      response: aiMessage,
+      sessionId,
+      timestamp: new Date().toISOString(),
+    });
   } catch (error) {
     console.error('Interview API error:', error);
     return NextResponse.json(
@@ -48,16 +97,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // TODO: Day 2 Hour 3 - Fetch session from MongoDB
-    const mockSession = {
-      sessionId,
-      role: 'Node.js Developer',
-      level: 'Senior',
-      messages: [],
-      startedAt: new Date().toISOString(),
-    };
+    // Fetch session from MongoDB
+    const session = await getSessionById(sessionId);
 
-    return NextResponse.json(mockSession);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Session not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      sessionId: session._id.toString(),
+      role: session.role,
+      level: session.level,
+      messages: session.messages,
+      status: session.status,
+      createdAt: session.createdAt,
+      evaluation: session.evaluation,
+    });
   } catch (error) {
     console.error('Get interview session error:', error);
     return NextResponse.json(

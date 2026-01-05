@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createSession } from '@/lib/db/operations';
 
 // POST /api/interview/start - Start a new interview session
 export async function POST(request: NextRequest) {
@@ -13,12 +14,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Day 1 Hour 2 - Create session in MongoDB
-    // - Generate unique session ID
-    // - Store session with role, level, userId
-    // - Initialize empty messages array
-    
-    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Validate level
+    if (!['junior', 'mid', 'senior'].includes(level)) {
+      return NextResponse.json(
+        { error: 'Level must be junior, mid, or senior' },
+        { status: 400 }
+      );
+    }
+
+    // Create session in MongoDB
+    const session = await createSession(
+      userId || 'anonymous',
+      role,
+      level as 'junior' | 'mid' | 'senior'
+    );
     
     // Generate opening question based on role and level
     const openingQuestions: Record<string, Record<string, string>> = {
@@ -48,13 +57,24 @@ export async function POST(request: NextRequest) {
     const levelKey = level.toLowerCase().replace('-level', '');
     const openingQuestion = openingQuestions[roleKey]?.[levelKey] || "Tell me about your experience with software development.";
 
+    // Add opening question to session messages
+    await session.updateOne({
+      $push: {
+        messages: {
+          role: 'assistant',
+          content: openingQuestion,
+          timestamp: new Date(),
+        }
+      }
+    });
+
     const sessionData = {
-      sessionId,
+      sessionId: session._id.toString(),
       role,
       level,
-      userId: userId || 'anonymous',
+      userId: session.userId,
       openingQuestion,
-      createdAt: new Date().toISOString(),
+      createdAt: session.createdAt.toISOString(),
     };
 
     return NextResponse.json(sessionData);
