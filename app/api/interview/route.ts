@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionById, addMessageToSession } from '@/lib/db/operations';
-import { createInterviewChain } from '@/lib/ai/chain';
+import { createInterviewChain, generateAIResponse } from '@/lib/ai/chain';
+import { createMemory } from '@/lib/ai/memory';
 import { HumanMessage, AIMessage, SystemMessage } from '@langchain/core/messages';
 
 // POST /api/interview - Handle interview messages
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Add user message to session
+    // Add user message to session first
     await addMessageToSession(sessionId, {
       role: 'user',
       content: message,
@@ -46,10 +47,14 @@ export async function POST(request: NextRequest) {
       level || session.level
     );
 
+    // Use intelligent memory management to get relevant context
+    const memory = createMemory(3000); // ~3000 tokens for context
+    const relevantMessages = memory.getRelevantMessages(session.messages);
+
     // Build message history for context
     const messages = [
       new SystemMessage(systemPrompt),
-      ...session.messages.map(msg => {
+      ...relevantMessages.map(msg => {
         if (msg.role === 'user') {
           return new HumanMessage(msg.content);
         } else {
@@ -59,9 +64,8 @@ export async function POST(request: NextRequest) {
       new HumanMessage(message),
     ];
 
-    // Generate AI response
-    const aiResponse = await model.invoke(messages);
-    const aiMessage = aiResponse.content as string;
+    // Generate AI response with retry logic
+    const aiMessage = await generateAIResponse(model, messages, 3);
 
     // Add AI response to session
     await addMessageToSession(sessionId, {
@@ -75,10 +79,22 @@ export async function POST(request: NextRequest) {
       sessionId,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Interview API error:', error);
+    
+    // Provide user-friendly error messages
+    let errorMessage = 'Failed to process interview message';
+    
+    if (error.message?.includes('API key')) {
+      errorMessage = 'AI service configuration error. Please contact support.';
+    } else if (error.message?.includes('timeout')) {
+      errorMessage = 'Request timeout. Please try again.';
+    } else if (error.message?.includes('rate limit')) {
+      errorMessage = 'Service temporarily busy. Please wait a moment and try again.';
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to process interview message' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
