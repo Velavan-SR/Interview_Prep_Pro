@@ -12,6 +12,15 @@ interface PerformanceData {
   technicalDepth: number;
   clarity: number;
   confidence: number;
+  overallScore?: number;
+}
+
+interface EvaluationData {
+  questionsAnswered: number;
+  currentDifficulty: number;
+  performance: PerformanceData & { trend: string };
+  strengths: string[];
+  improvements: string[];
 }
 
 export default function InterviewPage() {
@@ -27,6 +36,8 @@ export default function InterviewPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [difficulty, setDifficulty] = useState<number>(5);
   const [performance, setPerformance] = useState<PerformanceData | null>(null);
+  const [evaluation, setEvaluation] = useState<EvaluationData | null>(null);
+  const [showEvaluation, setShowEvaluation] = useState(false);
   const [sessionStartTime] = useState<Date>(new Date());
 
   // Auto-scroll to bottom when new messages arrive
@@ -135,6 +146,20 @@ export default function InterviewPage() {
     }
   };
 
+  const fetchEvaluation = async () => {
+    if (!sessionId) return;
+
+    try {
+      const response = await fetch(`/api/interview/evaluation?sessionId=${sessionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setEvaluation(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch evaluation:", error);
+    }
+  };
+
   const handleEndInterview = async () => {
     if (!sessionId) return;
 
@@ -214,6 +239,16 @@ export default function InterviewPage() {
                 <span className="font-semibold">Difficulty:</span> {difficulty.toFixed(1)}/10
               </div>
               <button
+                onClick={() => {
+                  fetchEvaluation();
+                  setShowEvaluation(!showEvaluation);
+                }}
+                disabled={!sessionId}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                {showEvaluation ? 'Hide' : 'View'} Stats
+              </button>
+              <button
                 onClick={handleEndInterview}
                 disabled={isLoading || !sessionId}
                 className="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
@@ -231,6 +266,78 @@ export default function InterviewPage() {
           )}
         </div>
       </header>
+
+      {/* Real-time Evaluation Panel */}
+      {showEvaluation && evaluation && (
+        <div className="max-w-5xl mx-auto px-4 py-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">
+              Live Performance Analysis
+            </h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Scores</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Overall:</span>
+                    <span className="font-bold text-lg text-blue-600 dark:text-blue-400">
+                      {evaluation.performance.overallScore?.toFixed(1)}/10
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Technical:</span>
+                    <span className="font-semibold">{evaluation.performance.technicalDepth.toFixed(1)}/10</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Clarity:</span>
+                    <span className="font-semibold">{evaluation.performance.clarity.toFixed(1)}/10</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Confidence:</span>
+                    <span className="font-semibold">{evaluation.performance.confidence.toFixed(1)}/10</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Trend:</span>
+                    <span className={`font-semibold ${
+                      evaluation.performance.trend === 'improving' ? 'text-green-600' :
+                      evaluation.performance.trend === 'declining' ? 'text-red-600' :
+                      'text-gray-600'
+                    }`}>
+                      {evaluation.performance.trend === 'improving' ? '📈 Improving' :
+                       evaluation.performance.trend === 'declining' ? '📉 Declining' :
+                       '➡️ Stable'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Strengths</h4>
+                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  {evaluation.strengths.slice(0, 3).map((strength, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>{strength}</span>
+                    </li>
+                  ))}
+                </ul>
+                {evaluation.improvements.length > 0 && (
+                  <>
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2 mt-4">Focus Areas</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                      {evaluation.improvements.slice(0, 2).map((improvement, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-orange-500">→</span>
+                          <span>{improvement}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Chat Container */}
       <div className="max-w-5xl mx-auto px-4 py-8">
