@@ -2,10 +2,15 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import ChatMessage from "@/components/interview/ChatMessage";
+import TypingIndicator from "@/components/interview/TypingIndicator";
+import PerformanceDisplay from "@/components/interview/PerformanceDisplay";
+import EvaluationPanel from "@/components/interview/EvaluationPanel";
 
 interface Message {
   role: string;
   content: string;
+  timestamp?: Date;
 }
 
 interface PerformanceData {
@@ -75,6 +80,7 @@ export default function InterviewPage() {
           {
             role: "assistant",
             content: data.openingQuestion,
+            timestamp: new Date(),
           },
         ]);
       } catch (error) {
@@ -83,6 +89,7 @@ export default function InterviewPage() {
           {
             role: "assistant",
             content: "Failed to start interview session. Please refresh the page.",
+            timestamp: new Date(),
           },
         ]);
       }
@@ -95,7 +102,11 @@ export default function InterviewPage() {
     e.preventDefault();
     if (!input.trim() || !sessionId || isLoading) return;
 
-    const userMessage: Message = { role: "user", content: input };
+    const userMessage: Message = { 
+      role: "user", 
+      content: input,
+      timestamp: new Date(),
+    };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
@@ -121,6 +132,7 @@ export default function InterviewPage() {
       const aiResponse: Message = {
         role: "assistant",
         content: data.response,
+        timestamp: new Date(),
       };
       
       setMessages((prev) => [...prev, aiResponse]);
@@ -216,52 +228,71 @@ export default function InterviewPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <header className="border-b border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="text-2xl">🎯</div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+      <header className="border-b border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-4 py-3 md:py-4">
+          {/* Top Row: Title and Main Actions */}
+          <div className="flex items-center justify-between mb-2 md:mb-0">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="text-xl md:text-2xl">🎯</div>
+              <h1 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">
                 Interview Session
               </h1>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                <span className="font-semibold">Time:</span> {currentTime}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                <span className="font-semibold">Role:</span> {role}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                <span className="font-semibold">Level:</span> {level}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                <span className="font-semibold">Difficulty:</span> {difficulty.toFixed(1)}/10
-              </div>
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => {
                   fetchEvaluation();
                   setShowEvaluation(!showEvaluation);
                 }}
                 disabled={!sessionId}
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
+                className="px-3 md:px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-lg text-xs md:text-sm font-medium transition-colors"
               >
-                {showEvaluation ? 'Hide' : 'View'} Stats
+                <span className="hidden sm:inline">{showEvaluation ? 'Hide' : 'View'} Stats</span>
+                <span className="sm:hidden">📊</span>
               </button>
               <button
                 onClick={handleEndInterview}
                 disabled={isLoading || !sessionId}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
+                className="px-3 md:px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white rounded-lg text-xs md:text-sm font-medium transition-colors"
               >
-                End Interview
+                <span className="hidden sm:inline">End</span>
+                <span className="sm:hidden">🚪</span>
               </button>
             </div>
           </div>
+          
+          {/* Second Row: Stats (hidden on small screens, shown in mobile-friendly format) */}
+          <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex items-center gap-1">
+              <span className="font-semibold">⏱️</span>
+              <span className="hidden xs:inline">Time:</span>
+              <span>{currentTime}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-semibold">💼</span>
+              <span className="hidden xs:inline">Role:</span>
+              <span>{role}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-semibold">📊</span>
+              <span className="hidden xs:inline">Level:</span>
+              <span>{level}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-semibold">🎚️</span>
+              <span className="hidden xs:inline">Difficulty:</span>
+              <span>{difficulty.toFixed(1)}/10</span>
+            </div>
+          </div>
+          
           {performance && (
-            <div className="mt-2 flex gap-4 text-xs text-gray-500 dark:text-gray-400">
-              <span>Tech: {performance.technicalDepth.toFixed(1)}/10</span>
-              <span>Clarity: {performance.clarity.toFixed(1)}/10</span>
-              <span>Confidence: {performance.confidence.toFixed(1)}/10</span>
+            <div className="mt-2">
+              <PerformanceDisplay 
+                compact
+                technicalDepth={performance.technicalDepth}
+                clarity={performance.clarity}
+                confidence={performance.confidence}
+              />
             </div>
           )}
         </div>
@@ -269,146 +300,78 @@ export default function InterviewPage() {
 
       {/* Real-time Evaluation Panel */}
       {showEvaluation && evaluation && (
-        <div className="max-w-5xl mx-auto px-4 py-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">
-              Live Performance Analysis
-            </h3>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Scores</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Overall:</span>
-                    <span className="font-bold text-lg text-blue-600 dark:text-blue-400">
-                      {evaluation.performance.overallScore?.toFixed(1)}/10
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Technical:</span>
-                    <span className="font-semibold">{evaluation.performance.technicalDepth.toFixed(1)}/10</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Clarity:</span>
-                    <span className="font-semibold">{evaluation.performance.clarity.toFixed(1)}/10</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Confidence:</span>
-                    <span className="font-semibold">{evaluation.performance.confidence.toFixed(1)}/10</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Trend:</span>
-                    <span className={`font-semibold ${
-                      evaluation.performance.trend === 'improving' ? 'text-green-600' :
-                      evaluation.performance.trend === 'declining' ? 'text-red-600' :
-                      'text-gray-600'
-                    }`}>
-                      {evaluation.performance.trend === 'improving' ? '📈 Improving' :
-                       evaluation.performance.trend === 'declining' ? '📉 Declining' :
-                       '➡️ Stable'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Strengths</h4>
-                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                  {evaluation.strengths.slice(0, 3).map((strength, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>{strength}</span>
-                    </li>
-                  ))}
-                </ul>
-                {evaluation.improvements.length > 0 && (
-                  <>
-                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2 mt-4">Focus Areas</h4>
-                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                      {evaluation.improvements.slice(0, 2).map((improvement, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <span className="text-orange-500">→</span>
-                          <span>{improvement}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
+        <div className="max-w-5xl mx-auto px-4 py-4 animate-fade-in">
+          <EvaluationPanel evaluation={evaluation} />
         </div>
       )}
 
       {/* Chat Container */}
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl h-[calc(100vh-200px)] flex flex-col">
+      <div className="max-w-5xl mx-auto px-2 md:px-4 py-4 md:py-8">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl h-[calc(100vh-280px)] md:h-[calc(100vh-200px)] flex flex-col">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-2xl px-6 py-4 ${
-                    message.role === "user"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="text-xl">
-                      {message.role === "user" ? "👤" : "🤖"}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium mb-1">
-                        {message.role === "user" ? "You" : "AI Interviewer"}
-                      </p>
-                      <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-3 md:space-y-4">
+            {messages.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                <p className="text-center">
+                  <span className="text-4xl mb-2 block">💬</span>
+                  Your interview will begin here...
+                </p>
               </div>
-            ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <div className="text-xl">🤖</div>
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            ) : (
+              <>
+                {messages.map((message, index) => (
+                  <ChatMessage
+                    key={index}
+                    role={message.role as 'user' | 'assistant'}
+                    content={message.content}
+                    timestamp={message.timestamp}
+                  />
+                ))}
+                {isLoading && <TypingIndicator />}
+              </>
             )}
             <div ref={messagesEndRef} />
           </div>
 
           {/* Input Form */}
-          <div className="border-t border-gray-200 dark:border-gray-700 p-6">
-            <form onSubmit={handleSubmit} className="flex gap-4">
+          <div className="border-t border-gray-200 dark:border-gray-700 p-3 md:p-6 bg-gray-50 dark:bg-gray-900/50">
+            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2 md:gap-4">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your answer here..."
-                className="flex-1 px-6 py-4 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                className="flex-1 px-4 md:px-6 py-3 md:py-4 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm md:text-base transition-shadow"
                 disabled={isLoading || !sessionId}
+                autoFocus
               />
               <button
                 type="submit"
                 disabled={isLoading || !input.trim() || !sessionId}
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-xl transition-colors"
+                className="px-6 md:px-8 py-3 md:py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all hover:shadow-lg text-sm md:text-base whitespace-nowrap"
+                title={!sessionId ? "Waiting for session..." : "Send your answer"}
               >
-                Send
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin">⏳</span>
+                    <span className="hidden sm:inline">Sending...</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <span>Send</span>
+                    <span className="hidden sm:inline">→</span>
+                  </span>
+                )}
               </button>
             </form>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-              Press Enter to send • Your responses are analyzed in real-time
-            </p>
+            <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <span className="hidden sm:inline">💡 Press Enter to send</span>
+              <span className="sm:hidden">💡 Tap Send</span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <span>AI analyzing responses</span>
+              </span>
+            </div>
           </div>
         </div>
       </div>
