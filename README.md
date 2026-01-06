@@ -110,11 +110,13 @@ Tracks performance across multiple dimensions, not just "right" or "wrong" answe
 - [x] Add error handling with retry logic
 - [x] Implement adaptive follow-up logic
 
-#### Hour 2: Adaptive Question Logic
-- [ ] Build response analyzer (shallow vs. deep)
-- [ ] Create follow-up question generator
-- [ ] Implement difficulty adjustment logic
-- [ ] Test multi-turn conversation flow
+#### Hour 2: Adaptive Question Logic ✅
+- [x] Build response analyzer (shallow vs. deep)
+- [x] Create follow-up question generator
+- [x] Implement difficulty adjustment logic
+- [x] Test multi-turn conversation flow
+- [x] Add performance tracking to sessions
+- [x] Connect UI to real API endpoints
 
 #### Hour 3: Evaluation System
 - [ ] Design scoring algorithm (Technical Depth, Clarity, Confidence)

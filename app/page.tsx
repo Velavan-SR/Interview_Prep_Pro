@@ -1,6 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 
 export default function Home() {
+  const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
+
   const roles = [
     { id: "nodejs", name: "Node.js Developer", icon: "💚" },
     { id: "react", name: "React Developer", icon: "⚛️" },
@@ -13,6 +19,8 @@ export default function Home() {
     { id: "mid", name: "Mid-Level", description: "2-5 years experience" },
     { id: "senior", name: "Senior", description: "5+ years experience" },
   ];
+
+  const canStartInterview = selectedRole && selectedLevel;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -90,10 +98,19 @@ export default function Home() {
             {roles.map((role) => (
               <button
                 key={role.id}
-                className="p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all group"
+                onClick={() => setSelectedRole(role.id)}
+                className={`p-6 border-2 rounded-xl transition-all group ${
+                  selectedRole === role.id
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    : "border-gray-200 dark:border-gray-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700"
+                }`}
               >
                 <div className="text-4xl mb-3">{role.icon}</div>
-                <div className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                <div className={`font-semibold ${
+                  selectedRole === role.id
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                }`}>
                   {role.name}
                 </div>
               </button>
@@ -110,9 +127,18 @@ export default function Home() {
             {levels.map((level) => (
               <button
                 key={level.id}
-                className="p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-gray-700 transition-all group text-left"
+                onClick={() => setSelectedLevel(level.id)}
+                className={`p-6 border-2 rounded-xl transition-all group text-left ${
+                  selectedLevel === level.id
+                    ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
+                    : "border-gray-200 dark:border-gray-700 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-gray-700"
+                }`}
               >
-                <div className="font-bold text-lg mb-2 text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400">
+                <div className={`font-bold text-lg mb-2 ${
+                  selectedLevel === level.id
+                    ? "text-purple-600 dark:text-purple-400"
+                    : "text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400"
+                }`}>
                   {level.name}
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -125,12 +151,21 @@ export default function Home() {
 
         {/* CTA Button */}
         <div className="text-center mt-12">
-          <Link
-            href="/interview"
-            className="inline-block bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg px-12 py-4 rounded-full hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all shadow-lg"
-          >
-            Start Interview Practice →
-          </Link>
+          {canStartInterview ? (
+            <Link
+              href={`/interview?role=${selectedRole}&level=${selectedLevel}`}
+              className="inline-block bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg px-12 py-4 rounded-full hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all shadow-lg"
+            >
+              Start Interview Practice →
+            </Link>
+          ) : (
+            <button
+              disabled
+              className="inline-block bg-gray-400 text-white font-bold text-lg px-12 py-4 rounded-full cursor-not-allowed opacity-60"
+            >
+              Select Role & Level to Start
+            </button>
+          )}
         </div>
       </section>
 

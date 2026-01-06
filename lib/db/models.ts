@@ -56,6 +56,14 @@ export interface IEvaluation {
   improvements?: string[];
 }
 
+export interface IPerformanceMetric {
+  questionNumber: number;
+  technicalDepth: number;
+  clarity: number;
+  confidence: number;
+  timestamp: Date;
+}
+
 export interface IInterviewSession extends Document {
   userId: string;
   role: string;
@@ -63,6 +71,8 @@ export interface IInterviewSession extends Document {
   messages: IMessage[];
   evaluation?: IEvaluation;
   status: 'active' | 'completed' | 'abandoned';
+  currentDifficulty: number; // 1-10 scale, dynamically adjusted
+  performanceHistory: IPerformanceMetric[]; // Track performance over time
   createdAt: Date;
   endedAt?: Date;
   duration?: number; // in minutes
@@ -120,6 +130,38 @@ const EvaluationSchema = new Schema<IEvaluation>(
   { _id: false }
 );
 
+const PerformanceMetricSchema = new Schema<IPerformanceMetric>(
+  {
+    questionNumber: {
+      type: Number,
+      required: true,
+    },
+    technicalDepth: {
+      type: Number,
+      min: 0,
+      max: 10,
+      required: true,
+    },
+    clarity: {
+      type: Number,
+      min: 0,
+      max: 10,
+      required: true,
+    },
+    confidence: {
+      type: Number,
+      min: 0,
+      max: 10,
+      required: true,
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
 const InterviewSessionSchema = new Schema<IInterviewSession>(
   {
     userId: {
@@ -148,6 +190,16 @@ const InterviewSessionSchema = new Schema<IInterviewSession>(
       type: String,
       enum: ['active', 'completed', 'abandoned'],
       default: 'active',
+    },
+    currentDifficulty: {
+      type: Number,
+      min: 1,
+      max: 10,
+      default: 5, // Start at medium difficulty
+    },
+    performanceHistory: {
+      type: [PerformanceMetricSchema],
+      default: [],
     },
     endedAt: {
       type: Date,
